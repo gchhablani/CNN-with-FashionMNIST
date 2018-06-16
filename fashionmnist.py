@@ -24,7 +24,7 @@ class FashionMNISTDataset(Dataset):
         self.train=train
         
         if self.train:
-            with open(os.path.join(self.root, 'train-images-idx3-ubyte.gz'), 'rb') as f:
+            with open(os.path.join(self.root, 'train-images-idx3-ubyte'), 'rb') as f:
                 data = f.read()
                 length=int(codecs.encode(data[4:8],'hex'),16)
                 num_rows = int(codecs.encode(data[8:12],'hex'),16)
@@ -33,13 +33,13 @@ class FashionMNISTDataset(Dataset):
                 self.train_data = torch.from_numpy(parsed).view(length, num_rows, num_cols)
 
                 
-            with open(os.path.join(self.root, 'train-labels-idx1-ubyte.gz'), 'rb') as f:
+            with open(os.path.join(self.root, 'train-labels-idx1-ubyte'), 'rb') as f:
                 data = f.read()
                 parsed = np.frombuffer(data, dtype=np.uint8, offset=8)
                 self.train_labels=torch.from_numpy(np.array([[int(parsed[i]==j) for j in range(10)]for i in range(len(parsed))]))
             
         else:
-            with open(os.path.join(self.root, 't10k-images-idx3-ubyte.gz'), 'rb') as f:
+            with open(os.path.join(self.root, 't10k-images-idx3-ubyte'), 'rb') as f:
                 data = f.read()
                 length=int(codecs.encode(data[4:8],'hex'),16)
                 num_rows = int(codecs.encode(data[8:12],'hex'),16)
@@ -47,7 +47,7 @@ class FashionMNISTDataset(Dataset):
                 parsed = np.frombuffer(data, dtype=np.uint8, offset=16)
                 self.test_data = torch.from_numpy(parsed).view(length, num_rows, num_cols)
                 
-            with open(os.path.join(self.root, 't10k-labels-idx1-ubyte.gz'), 'rb') as f:
+            with open(os.path.join(self.root, 't10k-labels-idx1-ubyte'), 'rb') as f:
                 data = f.read()
                 parsed = np.frombuffer(data, dtype=np.uint8, offset=8)
                 self.test_labels=torch.from_numpy(np.array([[int(parsed[i]==j) for j in range(10)]for i in range(len(parsed))]))
