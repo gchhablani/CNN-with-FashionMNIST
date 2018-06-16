@@ -7,7 +7,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 from torch.autograd import Variable
 from PIL import Image
-import gzip
+#import gzip
 
 torch.manual_seed(0)
 torch.backends.cudnn.deterministic=True
@@ -24,7 +24,7 @@ class FashionMNISTDataset(Dataset):
         self.train=train
         
         if self.train:
-            with gzip.open(os.path.join(self.root, 'train-images-idx3-ubyte.gz'), 'rb') as f:
+            with open(os.path.join(self.root, 'train-images-idx3-ubyte'), 'rb') as f:
                 data = f.read()
                 length=int(codecs.encode(data[4:8],'hex'),16)
                 num_rows = int(codecs.encode(data[8:12],'hex'),16)
@@ -33,13 +33,13 @@ class FashionMNISTDataset(Dataset):
                 self.train_data = torch.from_numpy(parsed).view(length, num_rows, num_cols)
 
                 
-            with gzip.open(os.path.join(self.root, 'train-labels-idx1-ubyte.gz'), 'rb') as f:
+            with open(os.path.join(self.root, 'train-labels-idx1-ubyte'), 'rb') as f:
                 data = f.read()
                 parsed = np.frombuffer(data, dtype=np.uint8, offset=8)
                 self.train_labels=torch.from_numpy(np.array([[int(parsed[i]==j) for j in range(10)]for i in range(len(parsed))]))
             
         else:
-            with gzip.open(os.path.join(self.root, 't10k-images-idx3-ubyte.gz'), 'rb') as f:
+            with open(os.path.join(self.root, 't10k-images-idx3-ubyte'), 'rb') as f:
                 data = f.read()
                 length=int(codecs.encode(data[4:8],'hex'),16)
                 num_rows = int(codecs.encode(data[8:12],'hex'),16)
@@ -47,7 +47,7 @@ class FashionMNISTDataset(Dataset):
                 parsed = np.frombuffer(data, dtype=np.uint8, offset=16)
                 self.test_data = torch.from_numpy(parsed).view(length, num_rows, num_cols)
                 
-            with gzip.open(os.path.join(self.root, 't10k-labels-idx1-ubyte.gz'), 'rb') as f:
+            with open(os.path.join(self.root, 't10k-labels-idx1-ubyte'), 'rb') as f:
                 data = f.read()
                 parsed = np.frombuffer(data, dtype=np.uint8, offset=8)
                 self.test_labels=torch.from_numpy(np.array([[int(parsed[i]==j) for j in range(10)]for i in range(len(parsed))]))
@@ -91,21 +91,24 @@ class CNNModel(nn.Module):
     def __init__ (self):
         super(CNNModel,self).__init__()
         
-        self.cnn1=nn.Conv2d(in_channels=1,out_channels=16, kernel_size=5,stride=1,padding=2)
+        self.cnn1=nn.Conv2d(in_channels=1,out_channels=16, kernel_size=3,stride=1,padding=1)
         self.bn1=nn.BatchNorm2d(16)
-        self.swish=Swish()
+        self.swish1=Swish()
         nn.init.xavier_normal(self.cnn1.weight)
+        self.maxpool1=nn.MaxPool2d(kernel_size=2,stride=1)
         
-        self.maxpool1=nn.MaxPool2d(kernel_size=2)
-        
-        self.cnn2=nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5,stride=1,padding=2)
+        self.cnn2=nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3,stride=1,padding=1)
         self.bn2=nn.BatchNorm2d(32)
-        self.swish=Swish()
+        self.swish2=Swish()
         nn.init.xavier_normal(self.cnn2.weight)
-        
         self.maxpool2=nn.MaxPool2d(kernel_size=2)
         
-        self.fc1 = nn.Linear(32 * 7 * 7, 10)
+        self.cnn3=nn.Conv2d(in_channels=32,out_channels=64, kernel_size=3,stride=1,padding=1)
+        self.bn3=nn.BatchNorm2d(64)
+        self.swish3=Swish()
+        nn.init.xavier_normal(self.cnn3.weight)
+        self.maxpool3=nn.MaxPool2d(kernel_size=2)
+        self.fc1 = nn.Linear(64*6*6,10)
         
         self.softmax=nn.Softmax(dim=1)
         
@@ -113,15 +116,17 @@ class CNNModel(nn.Module):
     def forward(self,x):
         out=self.cnn1(x)
         out=self.bn1(out)
-        out=self.swish(out)
+        out=self.swish1(out)
         out=self.maxpool1(out)
         out=self.cnn2(out)
         out=self.bn2(out)
-        out=self.swish(out)
+        out=self.swish2(out)
         out=self.maxpool2(out)
-
+        out=self.cnn3(out)
+        out=self.bn3(out)
+        out=self.swish3(out)
+        out=self.maxpool3(out)
         out=out.view(out.size(0),-1)
-        
         out=self.fc1(out)
         out=self.softmax(out)
         
@@ -138,7 +143,7 @@ learning_rate=0.015
 
 optimizer=torch.optim.Adagrad(model.parameters(),lr=learning_rate)
 
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)# this will decrease the learning rate by factor of 0.1 every 10 epochs
 
 iter=0
 for epoch in range(num_epochs):
