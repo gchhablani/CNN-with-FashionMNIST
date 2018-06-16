@@ -69,8 +69,8 @@ class FashionMNISTDataset(Dataset):
             img = self.transform(img)
         return img,target
 
-train_dataset=FashionMNISTDataset(root_dir="fashion-mnist/data/fashion/")
-test_dataset=FashionMNISTDataset(root_dir="fashion-mnist/data/fashion/",train=False)
+train_dataset=FashionMNISTDataset(root_dir="./fashion-mnist/data/fashion/")
+test_dataset=FashionMNISTDataset(root_dir="./fashion-mnist/data/fashion/",train=False)
 
 batch_size=100
 n_iters = 18000
@@ -80,20 +80,27 @@ num_epochs=int(num_epochs)
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 test_loader = torch.utils.data.DataLoader(dataset=test_dataset,batch_size=batch_size,shuffle=False)
 
+class Swish(nn.Module):
+  def forward(self, input):
+    return (input * torch.sigmoid(input))
+  
+  def __repr__(self):
+    return self.__class__.__name__ + ' ()'
+
 class CNNModel(nn.Module):
     def __init__ (self):
         super(CNNModel,self).__init__()
         
         self.cnn1=nn.Conv2d(in_channels=1,out_channels=16, kernel_size=5,stride=1,padding=2)
         self.bn1=nn.BatchNorm2d(16)
-        self.elu1=nn.ELU()
+        self.swish=Swish()
         nn.init.xavier_normal(self.cnn1.weight)
         
         self.maxpool1=nn.MaxPool2d(kernel_size=2)
         
         self.cnn2=nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5,stride=1,padding=2)
         self.bn2=nn.BatchNorm2d(32)
-        self.elu2=nn.ELU()
+        self.swish=Swish()
         nn.init.xavier_normal(self.cnn2.weight)
         
         self.maxpool2=nn.MaxPool2d(kernel_size=2)
@@ -106,11 +113,11 @@ class CNNModel(nn.Module):
     def forward(self,x):
         out=self.cnn1(x)
         out=self.bn1(out)
-        out=self.elu1(out)
+        out=self.swish(out)
         out=self.maxpool1(out)
         out=self.cnn2(out)
         out=self.bn2(out)
-        out=self.elu2(out)
+        out=self.swish(out)
         out=self.maxpool2(out)
 
         out=out.view(out.size(0),-1)
